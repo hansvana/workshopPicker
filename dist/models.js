@@ -9,16 +9,16 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Thing = function () {
-    function Thing(_options) {
+    function Thing(options) {
         _classCallCheck(this, Thing);
 
-        this.options = _options;
+        this._options = options;
     }
 
     _createClass(Thing, [{
-        key: "get",
-        value: function get(key) {
-            return this.options[key];
+        key: "option",
+        get: function get() {
+            return this._options;
         }
     }]);
 
@@ -37,4 +37,14 @@ var Workshop = function (_Thing) {
     return Workshop;
 }(Thing);
 
-//# sourceMappingURL=models.js.map
+var Participant = function (_Thing2) {
+    _inherits(Participant, _Thing2);
+
+    function Participant() {
+        _classCallCheck(this, Participant);
+
+        return _possibleConstructorReturn(this, Object.getPrototypeOf(Participant).apply(this, arguments));
+    }
+
+    return Participant;
+}(Thing);

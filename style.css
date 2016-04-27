@@ -1,0 +1,63 @@
+tbody>tr {
+    cursor: pointer;
+}
+
+tbody>tr:hover {
+    color: #1b6d85;
+}
+
+.alert {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 999;
+    text-align: center;
+    opacity: 0;
+    padding: 3px;
+}
+
+@keyframes FADEOUT {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.fadeout {
+    animation: FADEOUT 10s;
+}
+
+.hidden {
+    display: none;
+}
+
+#popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+#popupinner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    margin-left: -250px;
+    height: 300px;
+    margin-top: -150px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 1em;
+    box-sizing: border-box;
+}
+
+#popupclose {
+    position: absolute;
+    right: 1em;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
