@@ -32,12 +32,17 @@ var Engine = function () {
                 _this.save(result);
             });
         });
+        this._view.subscribe('ws_filter', function (data) {
+            return _this.filterWorkshops(data);
+        });
         this._view.subscribe('process', function () {
             _this.process();
         });
 
         this._workshops = [];
         this._participants = [];
+
+        this._hasProcessed = false;
 
         this.load('participants', this._participants, Participant);
         this.load('workshops', this._workshops, Workshop);
@@ -47,6 +52,8 @@ var Engine = function () {
         key: 'process',
         value: function process() {
             var _this2 = this;
+
+            this._hasProcessed = true;
 
             this._participants.forEach(function (participant) {
                 participant.createTempPicks();
@@ -85,43 +92,55 @@ var Engine = function () {
             }
         }
     }, {
-        key: 'checkMin',
-        value: function checkMin(workshop) {
-            var _this3 = this;
+        key: 'filterWorkshops',
+        value: function filterWorkshops(lessThan) {
+            lessThan = parseInt(lessThan);
 
-            workshop.parts.forEach(function (part) {
-                if (!workshop.hasMinimum(part)) {
-                    // console.log(workshop.options.name + " " + part +
-                    //     " is below minimum of " +
-                    //     workshop.options.min +
-                    //         " with " + workshop.options[part].length
-                    // );
-
-                    var participantsToRelocate = workshop.options[part];
-                    workshop.removePart(part);
-
-                    participantsToRelocate.forEach(function (participant) {
-
-                        //console.log("relocating:", participant, "for", part);
-                        _this3.findData({
-                            "which": "participants",
-                            "name": participant
-                        }, function (data) {
-                            data.item.options.allocated = data.item.options.allocated.filter(function (pick) {
-                                return pick !== workshop.options.name;
-                            });
-                            data.item.options.available.push(part);
-                            data.item.createTempPicks();
-                            _this3.findBestMatch(data.item);
-                        });
-                    });
-                }
+            this._workshops.forEach(function (workshop) {
+                workshop.parts.forEach(function (part) {
+                    console.log(workshop, part);
+                    if (workshop.options[part].length < lessThan) workshop.options[part] = false;
+                });
             });
+
+            this.update("workshops", this._workshops);
         }
+
+        // checkMin(workshop){
+        //     workshop.parts.forEach(part => {
+        //         if (!workshop.hasMinimum(part)){
+        //             // console.log(workshop.options.name + " " + part +
+        //             //     " is below minimum of " +
+        //             //     workshop.options.min +
+        //             //         " with " + workshop.options[part].length
+        //             // );
+        //
+        //             let participantsToRelocate = workshop.options[part];
+        //             workshop.removePart(part);
+        //
+        //             participantsToRelocate.forEach(participant => {
+        //
+        //                 //console.log("relocating:", participant, "for", part);
+        //                 this.findData({
+        //                     "which": "participants",
+        //                     "name": participant
+        //                 }, data => {
+        //                     data.item.options.allocated = data.item.options.allocated.filter(pick => {
+        //                         return pick !== workshop.options.name
+        //                     });
+        //                     data.item.options.available.push(part);
+        //                     data.item.createTempPicks();
+        //                     this.findBestMatch(data.item);
+        //                 })
+        //             });
+        //         }
+        //     });
+        // }
+
     }, {
         key: 'load',
         value: function load(which, arr, obj) {
-            var _this4 = this;
+            var _this3 = this;
 
             this.request(which, 'GET').then(function (data) {
                 data.items.map(function (p) {
@@ -129,23 +148,35 @@ var Engine = function () {
                     Object.keys(p._options).forEach(function (key) {
                         params[key] = p._options[key];
                     });
-                    params.id = params.id !== undefined ? params.id : _this4.makeid(5);
+                    params.id = params.id !== undefined ? params.id : _this3.makeid(5);
                     return new obj(params);
                 }).forEach(function (a) {
                     arr.push(a);
                 });
 
-                _this4._view.updateList(which, arr);
+                _this3._view.updateList(which, arr);
             });
         }
     }, {
         key: 'update',
         value: function update(which, arr) {
-            var _this5 = this;
+            var _this4 = this;
+
+            if (this._hasProcessed) {
+                this._workshops.forEach(function (current) {
+                    current.removePicks();
+                });
+                this._participants.forEach(function (current) {
+                    current.reset();
+                });
+            }
 
             this.request(which, 'POST', { "items": arr }).then(function (data) {
-                _this5._view.showAlert(data.status);
-                _this5._view.updateList(which, arr);
+                _this4._view.showAlert(data.status);
+
+                if (_this4._hasProcessed) _this4.process();
+
+                _this4._view.updateList(which, arr);
             });
         }
     }, {
@@ -212,6 +243,7 @@ var Engine = function () {
     }, {
         key: 'showModal',
         value: function showModal(data) {
+            console.log(data);
             this._view.showModal({
                 "item": data.item.options,
                 "which": data.data.which,

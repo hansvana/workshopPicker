@@ -104,7 +104,12 @@
                 <button type="button" class="btn btn-success" id="ws_process_btn">
                     <span class="glyphicon glyphicon-random" aria-hidden="true"></span> Verwerken
                 </button>
-                <input type="checkbox" id="ws_hide_empty" disabled="disabled"> Verberg lege workshops
+                <span class="pull-right" id="ws_filter_span">
+                Schakel workshops uit met minder dan <input type="number" min="1" class="form-control" id="ws_filter_nr" value="1"> deelnemer(s)
+                <button type="button" class="btn btn-danger" id="ws_filter_btn" disabled="true">
+                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Uitschakelen
+                </button>
+                </span>
                 <table class="table table-striped" id="pickedTable">
                     <thead>
                     <tr>
@@ -116,7 +121,7 @@
                     </tr>
                     </tbody>
                 </table>
-                <!--<table class="table table-striped" id="noMatchTable">
+                <table class="table table-striped" id="noMatchTable">
                     <thead>
                     <tr>
                         <th>Handmatige actie nodig</th><th></th><th></th>
@@ -126,7 +131,7 @@
                     <tr>
                     </tr>
                     </tbody>
-                </table>-->
+                </table>
             </div>
         </div>
     </div>
@@ -150,6 +155,7 @@
 <script src="views/WebComponents/ArrayList.js"></script>
 <script src="views/WebComponents/SaveButton.js"></script>
 <script src="views/WebComponents/TextInput.js"></script>
+<script src="views/WebComponents/CheckInput.js"></script>
 <script src="dist/view.js"></script>
 <script src="dist/index.js"></script>
 </body>

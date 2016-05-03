@@ -89,12 +89,21 @@ var Workshop = function (_Thing) {
             delete this._options[part];
         }
     }, {
-        key: "parts",
-        get: function get() {
+        key: "removePicks",
+        value: function removePicks() {
             var _this4 = this;
 
+            this.parts.forEach(function (current) {
+                _this4._options[current].length = 0;
+            });
+        }
+    }, {
+        key: "parts",
+        get: function get() {
+            var _this5 = this;
+
             return Object.keys(this._options).filter(function (key) {
-                return ["name", "min", "max", "id"].indexOf(key) === -1 && Array.isArray(_this4._options[key]);
+                return ["name", "min", "max", "id"].indexOf(key) === -1 && Array.isArray(_this5._options[key]);
             });
         }
     }]);
@@ -108,26 +117,26 @@ var Participant = function (_Thing2) {
     function Participant(options) {
         _classCallCheck(this, Participant);
 
-        var _this5 = _possibleConstructorReturn(this, Object.getPrototypeOf(Participant).call(this, options));
+        var _this6 = _possibleConstructorReturn(this, Object.getPrototypeOf(Participant).call(this, options));
 
         if (options.parts === undefined) options.parts = options.available;
 
-        _this5._options.available = options.parts.map(function (part) {
+        _this6._options.available = options.parts.map(function (part) {
             return part;
         });
-        delete _this5._options.parts;
-        return _this5;
+        delete _this6._options.parts;
+        return _this6;
     }
 
     _createClass(Participant, [{
         key: "do",
         value: function _do(method, value) {
-            var _this6 = this;
+            var _this7 = this;
 
             var action = {
                 "savepicks": function savepicks() {
                     console.log("doing");
-                    _this6._options.picks = value[0];
+                    _this7._options.picks = value[0];
                 }
             }[method];
 
@@ -136,15 +145,21 @@ var Participant = function (_Thing2) {
     }, {
         key: "createTempPicks",
         value: function createTempPicks() {
-            var _this7 = this;
+            var _this8 = this;
 
             this._options.tempPicks = this._options.picks.slice();
 
             if (this._options.allocated !== undefined) {
                 this._options.tempPicks = this._options.tempPicks.filter(function (pick) {
-                    return _this7._options.allocated.indexOf(pick) === -1;
+                    return _this8._options.allocated.indexOf(pick) === -1;
                 });
             }
+        }
+    }, {
+        key: "reset",
+        value: function reset() {
+            this._options.allocated.length = 0;
+            this._options.available = ["Dagdeel 1", "Dagdeel 2"];
         }
     }, {
         key: "picks",

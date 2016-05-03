@@ -26,9 +26,15 @@ class View {
                                 "parts": this.getCheckboxes()
                             }
                         }},
+            "ws_filter": {"element": document.getElementById("ws_filter_btn"),
+                        "event": "click",
+                        "action": () => {
+                            return document.getElementById("ws_filter_nr").value;
+                        }},
             "modal": {  "element": document,
                         "event": "modal",
                         "action": e => {
+                            console.log(e.detail);
                             return e.detail;
                         }},
             "remove": {  "element": document,
@@ -49,10 +55,6 @@ class View {
 
         document.getElementById("popupclose").addEventListener("click", () => {
             document.getElementById("popup").classList.add("hidden");
-        });
-        
-        document.getElementById("ws_hide_empty").addEventListener("change", (e) => {
-            this.hideEmptyRows(e.target.checked);
         });
 
         let panelHeaders = document.getElementsByClassName("panel-heading");
@@ -132,9 +134,18 @@ class View {
         list.forEach(item => {
             item.parts.forEach(part => {
                 let tr = document.createElement("tr");
-                tr.innerHTML = "<td><span title='min: "+ item.options.min + " max: " +item.options.max+ "'>" + item.options.name + " " + part +"</span></td>" +
-                "<td>" + item.options[part].length + "</td>" +
-                "<td>" + this.makeInfo(item.options[part]) + "</td>";
+
+                let td1 = document.createElement("td");
+                this.makeInfo("workshops",[item],td1,part);
+                tr.appendChild(td1);
+
+                let td2 = document.createElement("td");
+                td2.innerHTML = item.options[part].length;
+                tr.appendChild(td2);
+
+                let td3 = document.createElement("td");
+                this.makeInfo("participants",item.options[part],td3);
+                tr.appendChild(td3);
 
                 if (item.options[part].length < item.options.min)
                     tr.classList.add("danger");
@@ -143,35 +154,31 @@ class View {
             });
         });
 
-        document.getElementById("ws_hide_empty").disabled = false;
+        document.getElementById("ws_filter_btn").disabled = false;
     }
 
-    makeInfo(participants) {
+    makeInfo(which,array,element,appendText = "") {
 
-        if (participants.length == 0)
+        if (array.length == 0)
             return;
 
-        return participants.reduce((result, curr, i) => {
-            return result + (i>0?", ":"") +
-                "<span title='" + curr.options.picks.toString().replace(/\,/g, ", ") + "'>"+ curr.options.name + "</span>";
-        }, "")
-    }
+        array.forEach((current, index) => {
+            let span = document.createElement("span");
+            span.addEventListener("click", ()=> {
+                console.log("click", current);
+                document.dispatchEvent(
+                    new CustomEvent("modal", {
+                        "detail" : {"which": which, "id": current._options.id}
+                    })
+                );
+            });
+            span.innerHTML = current._options.name + " " + appendText;
 
-    hideEmptyRows(isChecked) {
-        let tbody = document.getElementById("pickedTable")
-            .getElementsByTagName("tbody")[0];
+            element.appendChild(span);
 
-        let rows = tbody.getElementsByTagName("tr");
-
-        for (let i = 0; i < rows.length; i++){
-            if (rows[i].getElementsByTagName("td")[1].innerText == 0) {
-                if (isChecked) {
-                    rows[i].classList.add("hidden");
-                } else {
-                    rows[i].classList.remove("hidden");
-                }
-            }
-        }
+            if (index !== array.length-1)
+                element.appendChild(document.createTextNode(", "));
+        });
     }
 
     noMatch(name, part, picks) {
@@ -239,7 +246,8 @@ class View {
         let customElements = [
             ['array-list', ArrayList],
             ['save-button', SaveButton],
-            ['text-input', TextInput]
+            ['text-input', TextInput],
+            ['check-input', CheckInput]
         ];
 
         customElements.forEach(x => {
@@ -261,6 +269,10 @@ class View {
             els[i].id = contents.item.id;
         }
         els = span.getElementsByTagName('text-input');
+        for (let i = 0; i < els.length; i++){
+            els[i].val = contents.item[els[i].for];
+        }
+        els = span.getElementsByTagName('check-input');
         for (let i = 0; i < els.length; i++){
             els[i].val = contents.item[els[i].for];
         }

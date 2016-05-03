@@ -68,6 +68,12 @@ class Workshop extends Thing {
     removePart(part) {
         delete this._options[part];
     }
+
+    removePicks() {
+        this.parts.forEach(current => {
+            this._options[current].length = 0;
+        });
+    }
 }
 
 class Participant extends Thing {
@@ -102,6 +108,11 @@ class Participant extends Thing {
                return this._options.allocated.indexOf(pick) === -1;
             });
         }
+    }
+    
+    reset() {
+        this._options.allocated.length = 0;
+        this._options.available = ["Dagdeel 1", "Dagdeel 2"];
     }
     
     get picks() {

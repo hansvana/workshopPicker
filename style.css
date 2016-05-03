@@ -14,16 +14,16 @@ tbody>tr span:hover {
     position: fixed;
     top: 0;
     width: 100%;
-    z-index: 999;
+    z-index: 900;
     text-align: center;
     opacity: 0;
     padding: 3px;
 }
 
 @keyframes FADEOUT {
-    0%   { opacity: 0; }
+    0%   { opacity: 0;}
     20%  { opacity: 1; }
-    100% { opacity: 0; }
+    100% { opacity: 0;}
 }
 
 .fadeout {
@@ -36,6 +36,7 @@ tbody>tr span:hover {
 
 #popup {
     position: fixed;
+    z-index: 901;
     top: 0;
     left: 0;
     width: 100%;
@@ -125,5 +126,15 @@ tbody>tr span:hover {
 text-input {
     -moz-user-modify: read-write;
     -webkit-user-modify: read-write;
+    margin-bottom: 12px;
 }
 
+check-input {
+    margin-bottom: 12px;
+    width: 34px !important;
+}
+
+#ws_filter_nr {
+    display: inline-block;
+    width: 50px;
+}

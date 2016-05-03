@@ -6,16 +6,21 @@ class Engine {
         this._view.subscribe('modal', data => this.findData(data, result => {this.showModal(result)}));
         this._view.subscribe('remove', data => this.findData(data, result => {this.remove(result)}));
         this._view.subscribe('save', data => this.findData(data, result => {this.save(result)}));
+        this._view.subscribe('ws_filter', data => this.filterWorkshops(data));
         this._view.subscribe('process', () => {this.process()});
 
         this._workshops = [];
         this._participants = [];
+
+        this._hasProcessed = false;
 
         this.load('participants', this._participants, Participant);
         this.load('workshops', this._workshops, Workshop);
     }
 
     process() {
+        this._hasProcessed = true;
+
         this._participants.forEach(participant => {
             participant.createTempPicks();
             this.findBestMatch(participant);
@@ -55,36 +60,50 @@ class Engine {
         }
     }
 
-    checkMin(workshop){
-        workshop.parts.forEach(part => {
-            if (!workshop.hasMinimum(part)){
-                // console.log(workshop.options.name + " " + part +
-                //     " is below minimum of " +
-                //     workshop.options.min +
-                //         " with " + workshop.options[part].length
-                // );
+    filterWorkshops(lessThan){
+        lessThan = parseInt(lessThan);
 
-                let participantsToRelocate = workshop.options[part];
-                workshop.removePart(part);
-
-                participantsToRelocate.forEach(participant => {
-
-                    //console.log("relocating:", participant, "for", part);
-                    this.findData({
-                        "which": "participants",
-                        "name": participant
-                    }, data => {
-                        data.item.options.allocated = data.item.options.allocated.filter(pick => {
-                            return pick !== workshop.options.name
-                        });
-                        data.item.options.available.push(part);
-                        data.item.createTempPicks();
-                        this.findBestMatch(data.item);
-                    })
-                });
-            }
+        this._workshops.forEach(workshop => {
+           workshop.parts.forEach(part => {
+               console.log(workshop,part);
+               if (workshop.options[part].length < lessThan)
+                   workshop.options[part] = false;
+           });
         });
+
+        this.update("workshops", this._workshops);
     }
+
+    // checkMin(workshop){
+    //     workshop.parts.forEach(part => {
+    //         if (!workshop.hasMinimum(part)){
+    //             // console.log(workshop.options.name + " " + part +
+    //             //     " is below minimum of " +
+    //             //     workshop.options.min +
+    //             //         " with " + workshop.options[part].length
+    //             // );
+    //
+    //             let participantsToRelocate = workshop.options[part];
+    //             workshop.removePart(part);
+    //
+    //             participantsToRelocate.forEach(participant => {
+    //
+    //                 //console.log("relocating:", participant, "for", part);
+    //                 this.findData({
+    //                     "which": "participants",
+    //                     "name": participant
+    //                 }, data => {
+    //                     data.item.options.allocated = data.item.options.allocated.filter(pick => {
+    //                         return pick !== workshop.options.name
+    //                     });
+    //                     data.item.options.available.push(part);
+    //                     data.item.createTempPicks();
+    //                     this.findBestMatch(data.item);
+    //                 })
+    //             });
+    //         }
+    //     });
+    // }
 
     load(which, arr, obj) {
         this.request(which, 'GET')
@@ -94,7 +113,7 @@ class Engine {
                     Object.keys(p._options).forEach(key => {
                         params[key] = p._options[key];
                     });
-                    params.id = (params.id !== undefined ? params.id : this.makeid(5))
+                    params.id = (params.id !== undefined ? params.id : this.makeid(5));
                     return new obj(params);
                 }).forEach(a => {
                    arr.push(a);
@@ -108,11 +127,23 @@ class Engine {
     }
 
     update(which, arr) {
+        if (this._hasProcessed) {
+            this._workshops.forEach(current => {
+                current.removePicks();
+            });
+            this._participants.forEach(current => {
+                current.reset();
+            });
+        }
+
         this.request(which,
             'POST',
             {"items": arr})
             .then( data => {
                 this._view.showAlert(data.status);
+
+                if (this._hasProcessed) this.process();
+
                 this._view.updateList(
                     which,
                     arr
@@ -178,6 +209,7 @@ class Engine {
     }
 
     showModal(data) {
+        console.log(data);
         this._view.showModal({
             "item": data.item.options,
             "which": data.data.which,

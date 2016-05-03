@@ -35,9 +35,15 @@ var View = function () {
                         "parts": _this.getCheckboxes()
                     };
                 } },
+            "ws_filter": { "element": document.getElementById("ws_filter_btn"),
+                "event": "click",
+                "action": function action() {
+                    return document.getElementById("ws_filter_nr").value;
+                } },
             "modal": { "element": document,
                 "event": "modal",
                 "action": function action(e) {
+                    console.log(e.detail);
                     return e.detail;
                 } },
             "remove": { "element": document,
@@ -57,10 +63,6 @@ var View = function () {
 
         document.getElementById("popupclose").addEventListener("click", function () {
             document.getElementById("popup").classList.add("hidden");
-        });
-
-        document.getElementById("ws_hide_empty").addEventListener("change", function (e) {
-            _this.hideEmptyRows(e.target.checked);
         });
 
         var panelHeaders = document.getElementsByClassName("panel-heading");
@@ -143,7 +145,18 @@ var View = function () {
             list.forEach(function (item) {
                 item.parts.forEach(function (part) {
                     var tr = document.createElement("tr");
-                    tr.innerHTML = "<td><span title='min: " + item.options.min + " max: " + item.options.max + "'>" + item.options.name + " " + part + "</span></td>" + "<td>" + item.options[part].length + "</td>" + "<td>" + _this2.makeInfo(item.options[part]) + "</td>";
+
+                    var td1 = document.createElement("td");
+                    _this2.makeInfo("workshops", [item], td1, part);
+                    tr.appendChild(td1);
+
+                    var td2 = document.createElement("td");
+                    td2.innerHTML = item.options[part].length;
+                    tr.appendChild(td2);
+
+                    var td3 = document.createElement("td");
+                    _this2.makeInfo("participants", item.options[part], td3);
+                    tr.appendChild(td3);
 
                     if (item.options[part].length < item.options.min) tr.classList.add("danger");
 
@@ -151,34 +164,30 @@ var View = function () {
                 });
             });
 
-            document.getElementById("ws_hide_empty").disabled = false;
+            document.getElementById("ws_filter_btn").disabled = false;
         }
     }, {
         key: 'makeInfo',
-        value: function makeInfo(participants) {
+        value: function makeInfo(which, array, element) {
+            var appendText = arguments.length <= 3 || arguments[3] === undefined ? "" : arguments[3];
 
-            if (participants.length == 0) return;
 
-            return participants.reduce(function (result, curr, i) {
-                return result + (i > 0 ? ", " : "") + "<span title='" + curr.options.picks.toString().replace(/\,/g, ", ") + "'>" + curr.options.name + "</span>";
-            }, "");
-        }
-    }, {
-        key: 'hideEmptyRows',
-        value: function hideEmptyRows(isChecked) {
-            var tbody = document.getElementById("pickedTable").getElementsByTagName("tbody")[0];
+            if (array.length == 0) return;
 
-            var rows = tbody.getElementsByTagName("tr");
+            array.forEach(function (current, index) {
+                var span = document.createElement("span");
+                span.addEventListener("click", function () {
+                    console.log("click", current);
+                    document.dispatchEvent(new CustomEvent("modal", {
+                        "detail": { "which": which, "id": current._options.id }
+                    }));
+                });
+                span.innerHTML = current._options.name + " " + appendText;
 
-            for (var i = 0; i < rows.length; i++) {
-                if (rows[i].getElementsByTagName("td")[1].innerText == 0) {
-                    if (isChecked) {
-                        rows[i].classList.add("hidden");
-                    } else {
-                        rows[i].classList.remove("hidden");
-                    }
-                }
-            }
+                element.appendChild(span);
+
+                if (index !== array.length - 1) element.appendChild(document.createTextNode(", "));
+            });
         }
     }, {
         key: 'noMatch',
@@ -248,7 +257,7 @@ var View = function () {
     }, {
         key: 'parseTemplate',
         value: function parseTemplate(html, contents) {
-            var customElements = [['array-list', ArrayList], ['save-button', SaveButton], ['text-input', TextInput]];
+            var customElements = [['array-list', ArrayList], ['save-button', SaveButton], ['text-input', TextInput], ['check-input', CheckInput]];
 
             customElements.forEach(function (x) {
                 if (document.createElement(x[0]).constructor === HTMLElement) {
@@ -271,6 +280,10 @@ var View = function () {
             els = span.getElementsByTagName('text-input');
             for (var _i2 = 0; _i2 < els.length; _i2++) {
                 els[_i2].val = contents.item[els[_i2].for];
+            }
+            els = span.getElementsByTagName('check-input');
+            for (var _i3 = 0; _i3 < els.length; _i3++) {
+                els[_i3].val = contents.item[els[_i3].for];
             }
 
             return span;
