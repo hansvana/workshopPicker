@@ -6,6 +6,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var View = function () {
     function View() {
+        var _this = this;
+
         _classCallCheck(this, View);
 
         this._lists = {
@@ -14,66 +16,102 @@ var View = function () {
         };
 
         this._events = {
-            "pa_add": { "element": "pa_add_btn",
+            "pa_add": { "element": document.getElementById("pa_add_btn"),
                 "event": "click",
                 "action": function action() {
-                    return document.getElementById("pa_name").value;
+                    return {
+                        "name": document.getElementById("pa_name").value,
+                        "parts": _this.getCheckboxes()
+                    };
                 } },
-            "ws_add": { "element": "ws_add_btn",
+            "ws_add": { "element": document.getElementById("ws_add_btn"),
                 "event": "click",
                 "action": function action() {
-
-                    var checkboxes = [].slice.call(document.getElementsByName("parts")).map(function (el) {
-                        return { "partName": el.parentNode.getElementsByTagName('span')[0].innerHTML,
-                            "checked": el.checked };
-                    });
 
                     return {
                         "name": document.getElementById("ws_name").value,
                         "min": document.getElementById("ws_min").value,
                         "max": document.getElementById("ws_max").value,
-                        "parts": checkboxes
+                        "parts": _this.getCheckboxes()
                     };
-                } }
+                } },
+            "modal": { "element": document,
+                "event": "modal",
+                "action": function action(e) {
+                    return e.detail;
+                } },
+            "remove": { "element": document,
+                "event": "remove",
+                "action": function action(e) {
+                    return e.detail;
+                } },
+            "save": { "element": document,
+                "event": "save",
+                "action": function action(e) {
+                    return e.detail;
+                } },
+            "process": { "element": document.getElementById("ws_process_btn"),
+                "event": "click",
+                "action": function action(e) {} }
         };
 
         document.getElementById("popupclose").addEventListener("click", function () {
             document.getElementById("popup").classList.add("hidden");
         });
+
+        document.getElementById("ws_hide_empty").addEventListener("change", function (e) {
+            _this.hideEmptyRows(e.target.checked);
+        });
+
+        var panelHeaders = document.getElementsByClassName("panel-heading");
+
+        var _loop = function _loop(i) {
+            panelHeaders[i].addEventListener("click", function () {
+                var panel = document.getElementById(panelHeaders[i].dataset.toggle);
+                if (panel.classList.contains("closed")) {
+                    panel.classList.remove("closed");
+                } else {
+                    panel.classList.add("closed");
+                }
+            });
+        };
+
+        for (var i = 0; i < panelHeaders.length; i++) {
+            _loop(i);
+        }
     }
 
     _createClass(View, [{
         key: 'subscribe',
         value: function subscribe(which, callback) {
-
-            var e = this._events[which];
-            document.getElementById(e.element).addEventListener(e.event, function () {
-                callback(e.action());
+            var el = this._events[which];
+            el.element.addEventListener(el.event, function (e) {
+                callback(el.action(e));
             });
         }
     }, {
         key: 'updateList',
-        value: function updateList(which, list, props) {
+        value: function updateList(which, list) {
             if (list.length === 0) return;
 
             var el = document.getElementById(this._lists[which]).getElementsByTagName("tbody")[0];
 
             el.innerHTML = "";
 
-            if (props === undefined) {
-                props = Object.keys(list[0].option);
-                console.log(props);
-            }
-
             list.forEach(function (item) {
+
+                var props = Object.keys(item.options);
+
                 var tr = document.createElement("tr");
 
-                if (item.option.id !== undefined) {
+                if (item.options.id !== undefined) {
                     (function () {
-                        var id = item.option.id;
+                        var id = item.options.id;
                         tr.id = id;
                         tr.addEventListener("click", function () {
-                            alert(which + " " + id);
+                            document.dispatchEvent(new CustomEvent("modal", {
+                                "detail": { "which": which, "id": id }
+                            }));
                         });
                     })();
                 }
@@ -83,9 +121,9 @@ var View = function () {
 
                     var td = document.createElement("td");
 
-                    var html = item.option[prop];
-                    if (html === true) html = '<span class="glyphicon glyphicon-ok"></span>';
-                    if (html === false) html = '';
+                    var html = item.options[prop];
+                    if (html === true || Array.isArray(html)) html = '<span class="glyphicon glyphicon-ok"></span>';
+                    if (html === false || html === undefined) html = '';
 
                     td.innerHTML = html;
                     tr.appendChild(td);
@@ -94,15 +132,158 @@ var View = function () {
             });
         }
     }, {
+        key: 'updateTable',
+        value: function updateTable(list) {
+            var _this2 = this;
+
+            var tbody = document.getElementById("pickedTable").getElementsByTagName("tbody")[0];
+
+            tbody.innerHTML = "";
+
+            list.forEach(function (item) {
+                item.parts.forEach(function (part) {
+                    var tr = document.createElement("tr");
+                    tr.innerHTML = "<td><span title='min: " + item.options.min + " max: " + item.options.max + "'>" + item.options.name + " " + part + "</span></td>" + "<td>" + item.options[part].length + "</td>" + "<td>" + _this2.makeInfo(item.options[part]) + "</td>";
+
+                    if (item.options[part].length < item.options.min) tr.classList.add("danger");
+
+                    tbody.appendChild(tr);
+                });
+            });
+
+            document.getElementById("ws_hide_empty").disabled = false;
+        }
+    }, {
+        key: 'makeInfo',
+        value: function makeInfo(participants) {
+
+            if (participants.length == 0) return;
+
+            return participants.reduce(function (result, curr, i) {
+                return result + (i > 0 ? ", " : "") + "<span title='" + curr.options.picks.toString().replace(/\,/g, ", ") + "'>" + curr.options.name + "</span>";
+            }, "");
+        }
+    }, {
+        key: 'hideEmptyRows',
+        value: function hideEmptyRows(isChecked) {
+            var tbody = document.getElementById("pickedTable").getElementsByTagName("tbody")[0];
+
+            var rows = tbody.getElementsByTagName("tr");
+
+            for (var i = 0; i < rows.length; i++) {
+                if (rows[i].getElementsByTagName("td")[1].innerText == 0) {
+                    if (isChecked) {
+                        rows[i].classList.add("hidden");
+                    } else {
+                        rows[i].classList.remove("hidden");
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'noMatch',
+        value: function noMatch(name, part, picks) {
+            var tbody = document.getElementById("noMatchTable").getElementsByTagName("tbody")[0];
+
+            var tr = document.createElement("tr");
+            tr.innerHTML = "<td>" + name + "</td><td>" + part + "</td><td>" + picks.toString().replace(/\,/g, ", ") + "</td>";
+            tbody.appendChild(tr);
+        }
+    }, {
         key: 'showAlert',
         value: function showAlert(status) {
             var alert = document.getElementById("alert");
             alert.classList.remove("hidden");
-            if (status === "success") {
-                var newAlert = alert.cloneNode(true);
-                newAlert.innerHTML = '<span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>Veranderingen opgeslagen';
-                alert.parentNode.replaceChild(newAlert, alert);
+            var newAlert = alert.cloneNode(true);
+            newAlert.innerHTML = {
+                'success': '<span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span> Veranderingen opgeslagen'
+            }[status];
+            alert.parentNode.replaceChild(newAlert, alert);
+        }
+    }, {
+        key: 'showModal',
+        value: function showModal(contents) {
+            var popup = document.getElementById("popup");
+            var popupContents = document.getElementById("popupcontents");
+            var popupTitle = document.getElementById("popuptitle");
+
+            popup.classList.remove("hidden");
+            popupTitle.innerHTML = contents.item.name;
+            popupContents.innerHTML = "";
+            this.loadTemplate(contents).then(function (data) {
+                return popupContents.appendChild(data);
+            }).catch(function (err) {
+                return console.error(err);
+            });
+
+            document.getElementById("popupbuttonremove").onclick = function () {
+                popup.classList.add("hidden");
+                document.dispatchEvent(new CustomEvent("remove", {
+                    "detail": { "which": contents.which, "id": contents.item.id }
+                }));
+            };
+        }
+    }, {
+        key: 'loadTemplate',
+        value: function loadTemplate(contents) {
+            var _this3 = this;
+
+            return new Promise(function (resolve, reject) {
+                var req = new XMLHttpRequest();
+                req.open('GET', 'views/modal_' + contents.which + '.html', true);
+                req.send();
+
+                req.onload = function () {
+                    if (req.status >= 200 && req.status < 300) {
+                        resolve(_this3.parseTemplate(req.response, contents));
+                    } else {
+                        reject(req.statusText);
+                    }
+                };
+                req.onerror = function () {
+                    reject(this.statusText);
+                };
+            });
+        }
+    }, {
+        key: 'parseTemplate',
+        value: function parseTemplate(html, contents) {
+            var customElements = [['array-list', ArrayList], ['save-button', SaveButton], ['text-input', TextInput]];
+
+            customElements.forEach(function (x) {
+                if (document.createElement(x[0]).constructor === HTMLElement) {
+                    var list = document.registerElement(x[0], x[1]);
+                }
+            });
+
+            var span = document.createElement("span");
+            span.innerHTML = html;
+
+            var els = span.getElementsByTagName('array-list');
+            for (var i = 0; i < els.length; i++) {
+                els[i].item = contents.item;
+                els[i].array = contents[els[i].attr];
             }
+            els = span.getElementsByTagName('save-button');
+            for (var _i = 0; _i < els.length; _i++) {
+                els[_i].id = contents.item.id;
+            }
+            els = span.getElementsByTagName('text-input');
+            for (var _i2 = 0; _i2 < els.length; _i2++) {
+                els[_i2].val = contents.item[els[_i2].for];
+            }
+
+            return span;
+        }
+    }, {
+        key: 'getCheckboxes',
+        value: function getCheckboxes() {
+            return [].slice.call(document.getElementsByName("parts")).map(function (el) {
+                return {
+                    "partName": el.parentNode.getElementsByTagName('span')[0].innerHTML,
+                    "checked": el.checked
+                };
+            });
         }
     }]);
 

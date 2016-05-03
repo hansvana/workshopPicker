@@ -1,71 +1,105 @@
 class View {
     constructor() {
-    this._lists = {
-        'participants': 'participantlist',
-        'workshops': 'workshoplist'
-    };
+        
+        this._lists = {
+            'participants': 'participantlist',
+            'workshops': 'workshoplist'
+        };
 
-    this._events = {
-        "pa_add": {"element": "pa_add_btn",
-                    "event": "click",
-                    "action": function() {
-                        return document.getElementById("pa_name").value;
-                    }},
-        "ws_add": {"element": "ws_add_btn",
-                    "event": "click",
-                    "action": function() {
+        this._events = {
+            "pa_add": {"element": document.getElementById("pa_add_btn"),
+                        "event": "click",
+                        "action": () => {
+                            return {
+                                "name": document.getElementById("pa_name").value,
+                                "parts": this.getCheckboxes()
+                            }
+                        }},
+            "ws_add": {"element": document.getElementById("ws_add_btn"),
+                        "event": "click",
+                        "action": () => {
 
-                        var checkboxes = [].slice.call(document.getElementsByName("parts")).map(el => {
-                            return {"partName" : el.parentNode.getElementsByTagName('span')[0].innerHTML,
-                                    "checked": el.checked};
-                        });
-
-                        return {
-                            "name": document.getElementById("ws_name").value,
-                            "min": document.getElementById("ws_min").value,
-                            "max": document.getElementById("ws_max").value,
-                            "parts": checkboxes
-                        }
-                    }}
+                            return {
+                                "name": document.getElementById("ws_name").value,
+                                "min": document.getElementById("ws_min").value,
+                                "max": document.getElementById("ws_max").value,
+                                "parts": this.getCheckboxes()
+                            }
+                        }},
+            "modal": {  "element": document,
+                        "event": "modal",
+                        "action": e => {
+                            return e.detail;
+                        }},
+            "remove": {  "element": document,
+                        "event": "remove",
+                        "action": e => {
+                            return e.detail;
+                        }},
+            "save": {   "element": document,
+                        "event": "save",
+                        "action": e => {
+                            return e.detail;
+                        }},
+            "process":  {"element": document.getElementById("ws_process_btn"),
+                        "event": "click",
+                        "action": e => {
+                        }}
         };
 
         document.getElementById("popupclose").addEventListener("click", () => {
             document.getElementById("popup").classList.add("hidden");
         });
+        
+        document.getElementById("ws_hide_empty").addEventListener("change", (e) => {
+            this.hideEmptyRows(e.target.checked);
+        });
+
+        let panelHeaders = document.getElementsByClassName("panel-heading");
+        for (let i = 0; i < panelHeaders.length; i++){
+            panelHeaders[i].addEventListener("click",() => {
+                let panel = document.getElementById(panelHeaders[i].dataset.toggle);
+                if (panel.classList.contains("closed")){
+                    panel.classList.remove("closed");
+                } else {
+                    panel.classList.add("closed");
+                }
+            })
+        }
     };            
     
     subscribe(which, callback){
-
-        let e = this._events[which];
-        document.getElementById(e.element).addEventListener(e.event, () => {
-            callback(e.action());
+        let el = this._events[which];
+        el.element.addEventListener(el.event, (e) => {
+            callback(el.action(e));
         });
-
     }
 
-    updateList(which, list, props){
+    updateList(which, list){
         if (list.length === 0)
             return;
 
         let el = document
             .getElementById(this._lists[which])
-            .getElementsByTagName("tbody")[0];
+            .getElementsByTagName("tbody")[0];  
 
         el.innerHTML = "";
 
-        if (props === undefined) {
-            props = Object.keys(list[0].option);
-            console.log(props);
-        }
-
         list.forEach( item => {
+
+            let props = Object.keys(item.options);
+
             let tr = document.createElement("tr");
 
-            if (item.option.id !== undefined) {
-                let id = item.option.id;
+            if (item.options.id !== undefined) {
+                let id = item.options.id;
                 tr.id = id;
                 tr.addEventListener("click", ()=> {
-                    alert(which + " " + id)
+                    document.dispatchEvent(
+                        new CustomEvent("modal", {
+                            "detail" : {"which": which, "id": id}
+                        })
+                    );
                 });
             }
 
@@ -75,10 +109,10 @@ class View {
 
                 let td = document.createElement("td");
 
-                let html = item.option[prop];
-                if (html === true)
+                let html = item.options[prop];
+                if (html === true || Array.isArray(html))
                     html = '<span class="glyphicon glyphicon-ok"></span>';
-                if (html === false)
+                if (html === false || html === undefined)
                     html = '';
 
                 td.innerHTML = html;
@@ -88,15 +122,158 @@ class View {
         });
     }
 
+    updateTable(list) {
+
+        let tbody = document.getElementById("pickedTable")
+                            .getElementsByTagName("tbody")[0];
+
+        tbody.innerHTML = "";
+
+        list.forEach(item => {
+            item.parts.forEach(part => {
+                let tr = document.createElement("tr");
+                tr.innerHTML = "<td><span title='min: "+ item.options.min + " max: " +item.options.max+ "'>" + item.options.name + " " + part +"</span></td>" +
+                "<td>" + item.options[part].length + "</td>" +
+                "<td>" + this.makeInfo(item.options[part]) + "</td>";
+
+                if (item.options[part].length < item.options.min)
+                    tr.classList.add("danger");
+
+                tbody.appendChild(tr);
+            });
+        });
+
+        document.getElementById("ws_hide_empty").disabled = false;
+    }
+
+    makeInfo(participants) {
+
+        if (participants.length == 0)
+            return;
+
+        return participants.reduce((result, curr, i) => {
+            return result + (i>0?", ":"") +
+                "<span title='" + curr.options.picks.toString().replace(/\,/g, ", ") + "'>"+ curr.options.name + "</span>";
+        }, "")
+    }
+
+    hideEmptyRows(isChecked) {
+        let tbody = document.getElementById("pickedTable")
+            .getElementsByTagName("tbody")[0];
+
+        let rows = tbody.getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++){
+            if (rows[i].getElementsByTagName("td")[1].innerText == 0) {
+                if (isChecked) {
+                    rows[i].classList.add("hidden");
+                } else {
+                    rows[i].classList.remove("hidden");
+                }
+            }
+        }
+    }
+
+    noMatch(name, part, picks) {
+        let tbody = document.getElementById("noMatchTable")
+            .getElementsByTagName("tbody")[0];
+
+        let tr = document.createElement("tr");
+        tr.innerHTML = "<td>" + name + "</td><td>" + part + "</td><td>" + picks.toString().replace(/\,/g, ", ") + "</td>";
+        tbody.appendChild(tr);
+    }
+
     showAlert(status) {
         let alert = document.getElementById("alert");
         alert.classList.remove("hidden");
-        if (status === "success"){
-            let newAlert = alert.cloneNode(true);
-            newAlert.innerHTML = '<span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span>Veranderingen opgeslagen';
-            alert.parentNode.replaceChild(newAlert,alert);
+        let newAlert = alert.cloneNode(true);
+        newAlert.innerHTML = {
+            'success': '<span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span> Veranderingen opgeslagen'
+        }[status];
+        alert.parentNode.replaceChild(newAlert,alert);
+    }
+
+    showModal(contents) {
+        let popup = document.getElementById("popup");
+        let popupContents = document.getElementById("popupcontents");
+        let popupTitle = document.getElementById("popuptitle");
+
+        popup.classList.remove("hidden");
+        popupTitle.innerHTML = contents.item.name;
+        popupContents.innerHTML = "";
+        this.loadTemplate(contents)
+            .then(data => popupContents.appendChild(data))
+            .catch(err => console.error(err));
+
+        document.getElementById("popupbuttonremove").onclick = ()=>{
+            popup.classList.add("hidden");
+            document.dispatchEvent(
+                new CustomEvent("remove", {
+                    "detail" : {"which": contents.which, "id": contents.item.id}
+                })
+            )
         }
+
     }
     
-    
+    loadTemplate(contents) {
+        return new Promise((resolve, reject) => {
+            let req = new XMLHttpRequest();
+            req.open('GET', 'views/modal_'+contents.which+'.html', true);
+            req.send();
+
+            req.onload = () => {
+                if (req.status >= 200 && req.status < 300) {
+                    resolve(this.parseTemplate(req.response,contents));
+                } else {
+                    reject(req.statusText);
+                }
+            };
+            req.onerror = function () {
+                reject(this.statusText);
+            };
+        });
+    }
+
+    parseTemplate(html, contents) {
+        let customElements = [
+            ['array-list', ArrayList],
+            ['save-button', SaveButton],
+            ['text-input', TextInput]
+        ];
+
+        customElements.forEach(x => {
+            if (document.createElement(x[0]).constructor === HTMLElement) {
+                let list = document.registerElement(x[0], x[1]);
+            }
+        });
+
+        let span = document.createElement("span");
+        span.innerHTML = html;
+
+        let els = span.getElementsByTagName('array-list');
+        for (let i = 0; i < els.length; i++){
+            els[i].item = contents.item;
+            els[i].array = contents[els[i].attr];
+        }
+        els = span.getElementsByTagName('save-button');
+        for (let i = 0; i < els.length; i++){
+            els[i].id = contents.item.id;
+        }
+        els = span.getElementsByTagName('text-input');
+        for (let i = 0; i < els.length; i++){
+            els[i].val = contents.item[els[i].for];
+        }
+
+        return span;
+    }
+
+    getCheckboxes() {
+        return [].slice.call(document.getElementsByName("parts")).map(el => {
+            return {
+                "partName": el.parentNode.getElementsByTagName('span')[0].innerHTML,
+                "checked": el.checked
+            };
+        });
+    }
 }

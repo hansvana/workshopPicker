@@ -13,10 +13,22 @@ var Thing = function () {
         _classCallCheck(this, Thing);
 
         this._options = options;
+        this._options.id = this.makeid(5);
     }
 
     _createClass(Thing, [{
-        key: "option",
+        key: "makeid",
+        value: function makeid(num) {
+            // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
+            var text = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+            for (var i = 0; i < num; i++) {
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
+            }return text;
+        }
+    }, {
+        key: "options",
         get: function get() {
             return this._options;
         }
@@ -28,11 +40,64 @@ var Thing = function () {
 var Workshop = function (_Thing) {
     _inherits(Workshop, _Thing);
 
-    function Workshop() {
+    function Workshop(options) {
         _classCallCheck(this, Workshop);
 
-        return _possibleConstructorReturn(this, Object.getPrototypeOf(Workshop).apply(this, arguments));
+        return _possibleConstructorReturn(this, Object.getPrototypeOf(Workshop).call(this, options));
     }
+
+    _createClass(Workshop, [{
+        key: "do",
+        value: function _do(method, value) {
+            var _this2 = this;
+
+            var action = {
+                "savepicks": function savepicks() {
+                    value.forEach(function (val) {
+                        _this2._options[Object.keys(val)[0]] = val[Object.keys(val)[0]];
+                    });
+                }
+            }[method];
+
+            action();
+        }
+    }, {
+        key: "findFreeSpace",
+        value: function findFreeSpace(participant, available) {
+            var _this3 = this;
+
+            var found = false;
+
+            available.forEach(function (part) {
+                if (found) return;
+
+                if (_this3._options[part] !== undefined && _this3._options[part].length < _this3._options.max) {
+                    _this3._options[part].push(participant);
+                    found = part;
+                }
+            });
+            return found;
+        }
+    }, {
+        key: "hasMinimum",
+        value: function hasMinimum(part) {
+            return this._options[part].length >= this._options.min;
+        }
+    }, {
+        key: "removePart",
+        value: function removePart(part) {
+            delete this._options[part];
+        }
+    }, {
+        key: "parts",
+        get: function get() {
+            var _this4 = this;
+
+            return Object.keys(this._options).filter(function (key) {
+                return ["name", "min", "max", "id"].indexOf(key) === -1 && Array.isArray(_this4._options[key]);
+            });
+        }
+    }]);
 
     return Workshop;
 }(Thing);
@@ -40,11 +105,58 @@ var Workshop = function (_Thing) {
 var Participant = function (_Thing2) {
     _inherits(Participant, _Thing2);
 
-    function Participant() {
+    function Participant(options) {
         _classCallCheck(this, Participant);
 
-        return _possibleConstructorReturn(this, Object.getPrototypeOf(Participant).apply(this, arguments));
+        var _this5 = _possibleConstructorReturn(this, Object.getPrototypeOf(Participant).call(this, options));
+
+        if (options.parts === undefined) options.parts = options.available;
+
+        _this5._options.available = options.parts.map(function (part) {
+            return part;
+        });
+        delete _this5._options.parts;
+        return _this5;
     }
+
+    _createClass(Participant, [{
+        key: "do",
+        value: function _do(method, value) {
+            var _this6 = this;
+
+            var action = {
+                "savepicks": function savepicks() {
+                    console.log("doing");
+                    _this6._options.picks = value[0];
+                }
+            }[method];
+
+            action();
+        }
+    }, {
+        key: "createTempPicks",
+        value: function createTempPicks() {
+            var _this7 = this;
+
+            this._options.tempPicks = this._options.picks.slice();
+
+            if (this._options.allocated !== undefined) {
+                this._options.tempPicks = this._options.tempPicks.filter(function (pick) {
+                    return _this7._options.allocated.indexOf(pick) === -1;
+                });
+            }
+        }
+    }, {
+        key: "picks",
+        get: function get() {
+            return this._options.picks;
+        }
+    }, {
+        key: "tempPicks",
+        get: function get() {
+            return this._options.tempPicks;
+        }
+    }]);
 
     return Participant;
 }(Thing);

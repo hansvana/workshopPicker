@@ -7,46 +7,61 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="col-md-6">
-                    <h2>Workshops toevoegen</h2>
-                    <form role="form">
-                        <div class="form-group">
-                            <label for="ws_name">Workshop naam:</label>
-                            <input type="text" class="form-control" id="ws_name">
-                        </div>
-                        <div class="form-group">
-                            <label for="ws_min">Minimum deelnemers:</label>
-                            <input type="text" class="form-control" id="ws_min">
-                        </div>
-                        <div class="form-group">
-                            <label for="ws_max">Maximum deelnemers:</label>
-                            <input type="text" class="form-control" id="ws_max">
-                        </div>
-                        <div class="checkbox">
-                            <label><input type="checkbox" name="parts" id="ws_part1"><span>Dagdeel 1</span></label>
-                        </div>
-                        <div class="checkbox">
-                            <label><input type="checkbox" name="parts" id="ws_part2"><span>Dagdeel 2</span></label>
-                        </div>
+<div class="container">
+    <div class="row">
+        <div class="panel panel-default">
+            <div class="panel-heading" data-toggle="panel_add">
+                <span class="glyphicon glyphicon-chevron-up" aria-hidden="true">
+                </span>
+            </div>
+            <div class="panel-body closed" id="panel_add">
+                <div class="col-md-12">
+                    <div class="col-md-6">
+                        <h2>Workshops toevoegen</h2>
+                        <form role="form">
+                            <div class="form-group">
+                                <label for="ws_name">Workshop naam:</label>
+                                <input type="text" class="form-control" id="ws_name">
+                            </div>
+                            <div class="form-group">
+                                <label for="ws_min">Minimum deelnemers:</label>
+                                <input type="text" class="form-control" id="ws_min">
+                            </div>
+                            <div class="form-group">
+                                <label for="ws_max">Maximum deelnemers:</label>
+                                <input type="text" class="form-control" id="ws_max">
+                            </div>
+                            <div class="checkbox">
+                                <label><input type="checkbox" name="parts" id="ws_part1"><span>Dagdeel 1</span></label>
+                            </div>
+                            <div class="checkbox">
+                                <label><input type="checkbox" name="parts" id="ws_part2"><span>Dagdeel 2</span></label>
+                            </div>
 
-                        <button type="button" class="btn btn-default" id="ws_add_btn">Submit</button>
-                    </form>
-                </div>
-                <div class="col-md-6">
-                    <h2>Deelnemers toevoegen</h2>
-                    <form role="form">
-                        <div class="form-group">
-                            <label for="ws_name">Deelnemer naam:</label>
-                            <input type="text" class="form-control" id="pa_name" value="Hans">
-                        </div>
-                        <button type="button" class="btn btn-default" id="pa_add_btn">Toevoegen</button>
-                    </form>
+                            <button type="button" class="btn btn-default" id="ws_add_btn">Submit</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h2>Deelnemers toevoegen</h2>
+                        <form role="form">
+                            <div class="form-group">
+                                <label for="ws_name">Deelnemer naam:</label>
+                                <input type="text" class="form-control" id="pa_name">
+                            </div>
+                            <button type="button" class="btn btn-default" id="pa_add_btn">Toevoegen</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-            <div class="row">
+        </div>
+    </div>
+    <div class="row">
+        <div class="panel panel-default">
+            <div class="panel-heading" data-toggle="panel_lists">
+                <span class="glyphicon glyphicon-chevron-up" aria-hidden="true">
+                </span>
+            </div>
+            <div class="panel-body" id="panel_lists">
                 <div class="col-md-12">
                     <div class="col-md-6">
                         <table class="table table-striped" id="workshoplist">
@@ -68,6 +83,7 @@
                             <thead>
                             <tr>
                                 <th>Deelnemers</th>
+                                <th>Voorkeuren</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -78,16 +94,63 @@
             </div>
         </div>
     </div>
-    <div class="alert alert-success fadeout hidden" id="alert">
-    </div>
-    <div id="popup" class="hidden">
-        <div id="popupinner">
-            <div id="popupclose"><span class="glyphicon glyphicon-remove"></span></div>
-            <h2>Hello World!</h2>
+    <div class="row" id="row_table">
+        <div class="panel panel-default">
+            <div class="panel-heading" data-toggle="panel_table">
+                <span class="glyphicon glyphicon-chevron-up" aria-hidden="true">
+                </span>
+            </div>
+            <div class="panel-body closed" id="panel_table">
+                <button type="button" class="btn btn-success" id="ws_process_btn">
+                    <span class="glyphicon glyphicon-random" aria-hidden="true"></span> Verwerken
+                </button>
+                <input type="checkbox" id="ws_hide_empty" disabled="disabled"> Verberg lege workshops
+                <table class="table table-striped" id="pickedTable">
+                    <thead>
+                    <tr>
+                        <th>Workshop</th><th></th><th>Deelnemers</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                    </tr>
+                    </tbody>
+                </table>
+                <!--<table class="table table-striped" id="noMatchTable">
+                    <thead>
+                    <tr>
+                        <th>Handmatige actie nodig</th><th></th><th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                    </tr>
+                    </tbody>
+                </table>-->
+            </div>
         </div>
     </div>
-    <script src="dist/models.js"></script>
-    <script src="dist/view.js"></script>
-    <script src="dist/index.js"></script>
+
+</div>
+<div class="alert alert-success fadeout hidden" id="alert">
+</div>
+<div id="popup" class="hidden">
+    <div id="popupinner">
+        <div id="popupclose"><span class="glyphicon glyphicon-remove"></span></div>
+        <h2 id="popuptitle">Hello World!</h2>
+        <span id="popupcontents"></span>
+        <hr>
+        <button type="button" class="btn btn-danger" id="popupbuttonremove">
+            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+            Verwijderen
+        </button>
+    </div>
+</div>
+<script src="dist/models.js"></script>
+<script src="views/WebComponents/ArrayList.js"></script>
+<script src="views/WebComponents/SaveButton.js"></script>
+<script src="views/WebComponents/TextInput.js"></script>
+<script src="dist/view.js"></script>
+<script src="dist/index.js"></script>
 </body>
 </html>

@@ -1,18 +1,92 @@
 class Engine {
     constructor(view){
         this._view = view;
-        this._view.subscribe('pa_add', data => this.addParticipant(data));
+        this._view.subscribe('pa_add', data => this.add("participants",this._participants,Participant,data));
         this._view.subscribe('ws_add', data => this.addWorkshop(data));
-        this._view.subscribe('modal', data => this.findData(data));
+        this._view.subscribe('modal', data => this.findData(data, result => {this.showModal(result)}));
+        this._view.subscribe('remove', data => this.findData(data, result => {this.remove(result)}));
+        this._view.subscribe('save', data => this.findData(data, result => {this.save(result)}));
+        this._view.subscribe('process', () => {this.process()});
 
         this._workshops = [];
         this._participants = [];
 
-        this.get('participants', this._participants, Participant);
-        this.get('workshops', this._workshops, Workshop);
+        this.load('participants', this._participants, Participant);
+        this.load('workshops', this._workshops, Workshop);
     }
 
-    get(which, arr, obj) {
+    process() {
+        this._participants.forEach(participant => {
+            participant.createTempPicks();
+            this.findBestMatch(participant);
+        });
+        //this._workshops.forEach(workshop => {
+        //    this.checkMin(workshop);
+        //});
+        this._view.updateTable(this._workshops);
+    }
+
+    findBestMatch(participant){
+        if(participant.tempPicks.length >= 1 && participant.options.available.length > 0)
+            this.findData(
+                {"which": "workshops",
+                "name": participant.tempPicks[0]},workshop => {
+                    let found = workshop.item.findFreeSpace(participant,participant.options.available);
+                    if (found !== false) {
+                        participant.options.available = participant.options.available.filter(x => {
+                            return x !== found;
+                        });
+                        if (participant.options.allocated === undefined)
+                            participant.options.allocated = [];
+
+                        participant.options.allocated.push(workshop.item.options.name);
+                    }
+                    participant.options.tempPicks.splice(0,1);
+                });
+
+        if (participant.options.available.length < 1) {
+            //console.log("all matches found for:" + participant.options.name);
+            return;
+        } else if(participant.tempPicks.length < 1) {
+            this._view.noMatch(participant.options.name,participant.options.available,participant.options.picks);
+            console.log("could not find match for: " + participant.options.name);
+        } else {
+            this.findBestMatch(participant);
+        }
+    }
+
+    checkMin(workshop){
+        workshop.parts.forEach(part => {
+            if (!workshop.hasMinimum(part)){
+                // console.log(workshop.options.name + " " + part +
+                //     " is below minimum of " +
+                //     workshop.options.min +
+                //         " with " + workshop.options[part].length
+                // );
+
+                let participantsToRelocate = workshop.options[part];
+                workshop.removePart(part);
+
+                participantsToRelocate.forEach(participant => {
+
+                    //console.log("relocating:", participant, "for", part);
+                    this.findData({
+                        "which": "participants",
+                        "name": participant
+                    }, data => {
+                        data.item.options.allocated = data.item.options.allocated.filter(pick => {
+                            return pick !== workshop.options.name
+                        });
+                        data.item.options.available.push(part);
+                        data.item.createTempPicks();
+                        this.findBestMatch(data.item);
+                    })
+                });
+            }
+        });
+    }
+
+    load(which, arr, obj) {
         this.request(which, 'GET')
             .then( data => {
                 data.items.map((p) => {
@@ -33,7 +107,7 @@ class Engine {
             });
     }
 
-    set(which, arr) {
+    update(which, arr) {
         this.request(which,
             'POST',
             {"items": arr})
@@ -45,13 +119,14 @@ class Engine {
                 );
             });
     }
-
-    addParticipant(name) {
-        this._participants.unshift(new Participant({
-            "name": name,
-            "id": this.makeid(5)
-        }));
-        this.set('participants',this._participants);
+    
+    add(which,arr,obj,options) {       
+        arr.push(new obj(options));
+        
+        arr.sort((a,b)=>{
+            return (a.options.name > b.options.name ? 1 : -1);
+        });
+        this.update(which, arr);
     }
     
     addWorkshop(options) {
@@ -63,11 +138,62 @@ class Engine {
         };
         
         options.parts.forEach(part => {
-            params[part.partName] = part.checked;
+            if (part.checked) {
+                params[part.partName] = [];
+            } else {
+                params[part.partName] = false;
+            }
         });
         
         this._workshops.unshift(new Workshop(params));
-        this.set("workshops",this._workshops);
+        this.update("workshops",this._workshops);
+    }
+
+    findData(data, callback){
+        let arr = {
+            "participants": this._participants,
+            "workshops": this._workshops
+        }[data.which];
+
+        let itm = null, index = null;
+
+        if (data.id !== undefined) {
+            index = arr.findIndex(x => {
+                return x.options.id === data.id;
+            });
+            itm = arr[index];
+        } else if (data.name !== undefined) {
+            index = arr.findIndex(x => {
+                return x.options.name === data.name;
+            });
+            itm = arr[index];
+        }
+
+        callback({
+            "item": itm,
+            "parentArray": arr,
+            "index": index,
+            "data": data
+        });
+    }
+
+    showModal(data) {
+        this._view.showModal({
+            "item": data.item.options,
+            "which": data.data.which,
+            "participants": this._participants,
+            "workshops": this._workshops
+        });
+    }
+
+    remove(data) {
+        data.parentArray.splice(data.index,1);
+        this.update(data.data.which,data.parentArray);
+    }
+
+    save(data) {
+        data.item.do(data.data.method,data.data.value);
+        this.update(data.data.which,data.parentArray);
     }
 
     request(action,method,data = "") {
@@ -90,18 +216,6 @@ class Engine {
                 reject(this.statusText);
             };
         });
-    }
-
-    makeid(num)
-    {
-        // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
-        let text = "";
-        let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-        for( var i=0; i < num; i++ )
-            text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-        return text;
     }
 }
 

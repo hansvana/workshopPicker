@@ -6,6 +6,10 @@ tbody>tr:hover {
     color: #1b6d85;
 }
 
+tbody>tr span:hover {
+    color: #761c19;
+}
+
 .alert {
     position: fixed;
     top: 0;
@@ -41,15 +45,14 @@ tbody>tr:hover {
 
 #popupinner {
     position: fixed;
-    top: 50%;
+    top: 0;
     left: 50%;
     width: 500px;
     margin-left: -250px;
-    height: 300px;
-    margin-top: -150px;
     background-color: #fff;
     border: 1px solid #ccc;
-    border-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
     padding: 1em;
     box-sizing: border-box;
 }
@@ -59,5 +62,68 @@ tbody>tr:hover {
     right: 1em;
     opacity: 0.5;
     cursor: pointer;
+}
+
+.table-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.table-list-item {
+    width: 32%;
+    display: inline-block;
+    vertical-align: top;
+    padding: 2px;
+    box-sizing: border-box;
+}
+
+.table-list-item div {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    height: 5em;
+    padding: 1em;
+    box-sizing: border-box;
+}
+
+.table-list-item div:hover {
+    background-color: #9acfea;
+    cursor: pointer;
+}
+
+.table-list-item.pick div {
+    background-color: #b2dba1;
+}
+
+.table-list-item.pick div:hover {
+    background-color: #4cae4c;
+}
+
+.panel-heading {
+    cursor: pointer;
+}
+
+.panel-body{
+    -webkit-transition: height 1s;
+    transition: height 1s;
+}
+
+.panel-body.closed {
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+}
+
+#table_container {
+    font-size: 12pt;
+}
+
+#table_container ul {
+    display: inline-block;
+    width: 10%;
+}
+
+text-input {
+    -moz-user-modify: read-write;
+    -webkit-user-modify: read-write;
 }
 
