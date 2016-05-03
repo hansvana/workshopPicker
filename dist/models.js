@@ -124,6 +124,11 @@ var Participant = function (_Thing2) {
         _this6._options.available = options.parts.map(function (part) {
             return part;
         });
+
+        _this6._options.available.forEach(function (x) {
+            if (_this6._options["forced " + x] === undefined) _this6._options["forced " + x] = "";
+        });
+
         delete _this6._options.parts;
         return _this6;
     }
@@ -135,8 +140,12 @@ var Participant = function (_Thing2) {
 
             var action = {
                 "savepicks": function savepicks() {
-                    console.log("doing");
+                    console.log(value);
                     _this7._options.picks = value[0];
+                    for (var i = 1; i < value.length; i++) {
+                        console.log(Object.keys(value[i])[0]);
+                        _this7._options[Object.keys(value[i])[0]] = value[i][Object.keys(value[i])[0]];
+                    }
                 }
             }[method];
 

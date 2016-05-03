@@ -131,6 +131,8 @@ class View {
 
         tbody.innerHTML = "";
 
+        document.getElementById("noMatchTable").getElementsByTagName("tbody")[0].innerHTML = "";
+
         list.forEach(item => {
             item.parts.forEach(part => {
                 let tr = document.createElement("tr");

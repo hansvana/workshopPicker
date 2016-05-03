@@ -22,6 +22,7 @@ class Engine {
         this._hasProcessed = true;
 
         this._participants.forEach(participant => {
+            this.checkForced(participant);
             participant.createTempPicks();
             this.findBestMatch(participant);
         });
@@ -29,6 +30,35 @@ class Engine {
         //    this.checkMin(workshop);
         //});
         this._view.updateTable(this._workshops);
+    }
+
+
+    checkForced(participant){
+        Object.keys(participant.options).forEach(current => {
+            if (participant.options[current] == "")
+                return;
+
+            let part = /forced\s(.*)$/.exec(current);
+
+            if (part === null)
+                return;
+
+            this.findData(
+                {"which": "workshops",
+                "name": participant.options[current]}, workshop => {
+                    if (workshop === undefined) return;
+
+                    workshop.item.options[part[1]].push(participant);
+                    participant.options.available = participant.options.available.filter(x => {
+                        return x !== part[1];
+                    });
+                    if (participant.options.allocated === undefined)
+                        participant.options.allocated = [];
+
+                    participant.options.allocated.push(workshop.item.options.name);
+                }
+            )
+        })
     }
 
     findBestMatch(participant){
@@ -66,7 +96,7 @@ class Engine {
         this._workshops.forEach(workshop => {
            workshop.parts.forEach(part => {
                console.log(workshop,part);
-               if (workshop.options[part].length < lessThan)
+               if (workshop.options[part].length < lessThan && workshop.options[part].length < workshop.options.min)
                    workshop.options[part] = false;
            });
         });

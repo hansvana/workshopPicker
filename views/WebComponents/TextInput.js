@@ -27,6 +27,7 @@ class TextInput extends HTMLElement {
     }
 
     get saveValues() {
+        console.log(this.attributes["for"].value,this._value);
         return {[this.attributes["for"].value]: this._value};
     }
 }

@@ -83,17 +83,27 @@ class Participant extends Thing {
         if (options.parts === undefined)
             options.parts = options.available;
 
-        this._options.available =  options.parts.map(part => {
+
+        this._options.available = options.parts.map(part => {
             return part;
         });
+
+        this._options.available.forEach(x => {
+            if (this._options["forced "+x] === undefined) this._options["forced "+x] = "";
+        })
+
         delete this._options.parts;
     }
     
     do(method,value) {
         let action = {
             "savepicks": () => {
-                console.log("doing");
+                console.log(value);
                 this._options.picks = value[0];
+                for (let i = 1; i < value.length; i++) {
+                    console.log(Object.keys(value[i])[0])
+                    this._options[Object.keys(value[i])[0]] = value[i][Object.keys(value[i])[0]];
+                }
             }
         }[method];
 

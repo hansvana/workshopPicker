@@ -142,6 +142,8 @@ var View = function () {
 
             tbody.innerHTML = "";
 
+            document.getElementById("noMatchTable").getElementsByTagName("tbody")[0].innerHTML = "";
+
             list.forEach(function (item) {
                 item.parts.forEach(function (part) {
                     var tr = document.createElement("tr");

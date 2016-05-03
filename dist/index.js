@@ -56,6 +56,7 @@ var Engine = function () {
             this._hasProcessed = true;
 
             this._participants.forEach(function (participant) {
+                _this2.checkForced(participant);
                 participant.createTempPicks();
                 _this2.findBestMatch(participant);
             });
@@ -63,6 +64,32 @@ var Engine = function () {
             //    this.checkMin(workshop);
             //});
             this._view.updateTable(this._workshops);
+        }
+    }, {
+        key: 'checkForced',
+        value: function checkForced(participant) {
+            var _this3 = this;
+
+            Object.keys(participant.options).forEach(function (current) {
+                if (participant.options[current] == "") return;
+
+                var part = /forced\s(.*)$/.exec(current);
+
+                if (part === null) return;
+
+                _this3.findData({ "which": "workshops",
+                    "name": participant.options[current] }, function (workshop) {
+                    if (workshop === undefined) return;
+
+                    workshop.item.options[part[1]].push(participant);
+                    participant.options.available = participant.options.available.filter(function (x) {
+                        return x !== part[1];
+                    });
+                    if (participant.options.allocated === undefined) participant.options.allocated = [];
+
+                    participant.options.allocated.push(workshop.item.options.name);
+                });
+            });
         }
     }, {
         key: 'findBestMatch',
@@ -99,7 +126,7 @@ var Engine = function () {
             this._workshops.forEach(function (workshop) {
                 workshop.parts.forEach(function (part) {
                     console.log(workshop, part);
-                    if (workshop.options[part].length < lessThan) workshop.options[part] = false;
+                    if (workshop.options[part].length < lessThan && workshop.options[part].length < workshop.options.min) workshop.options[part] = false;
                 });
             });
 
@@ -140,7 +167,7 @@ var Engine = function () {
     }, {
         key: 'load',
         value: function load(which, arr, obj) {
-            var _this3 = this;
+            var _this4 = this;
 
             this.request(which, 'GET').then(function (data) {
                 data.items.map(function (p) {
@@ -148,19 +175,19 @@ var Engine = function () {
                     Object.keys(p._options).forEach(function (key) {
                         params[key] = p._options[key];
                     });
-                    params.id = params.id !== undefined ? params.id : _this3.makeid(5);
+                    params.id = params.id !== undefined ? params.id : _this4.makeid(5);
                     return new obj(params);
                 }).forEach(function (a) {
                     arr.push(a);
                 });
 
-                _this3._view.updateList(which, arr);
+                _this4._view.updateList(which, arr);
             });
         }
     }, {
         key: 'update',
         value: function update(which, arr) {
-            var _this4 = this;
+            var _this5 = this;
 
             if (this._hasProcessed) {
                 this._workshops.forEach(function (current) {
@@ -172,11 +199,11 @@ var Engine = function () {
             }
 
             this.request(which, 'POST', { "items": arr }).then(function (data) {
-                _this4._view.showAlert(data.status);
+                _this5._view.showAlert(data.status);
 
-                if (_this4._hasProcessed) _this4.process();
+                if (_this5._hasProcessed) _this5.process();
 
-                _this4._view.updateList(which, arr);
+                _this5._view.updateList(which, arr);
             });
         }
     }, {
